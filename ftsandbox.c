@@ -19,28 +19,26 @@ int main(int argc, char *argv[]){
     FT_Bool use_kerning = 1;
     FT_UInt previous;
 
+    // Init FreeType library
     int error = FT_Init_FreeType(&library);
     
     if (error){
-        printf("There was an error: %d\n", error);
-    } else {
-        printf("Successfully loaded library.\n");
-    }
+        printf("Error initializing the FreeType library: %d\n", error);
+        return error;
+    } 
 
+    // Load the font file
     error = FT_New_Face(library, "/usr/share/fonts/dejavu/DejaVuSans.ttf", 0, &face);
 
     if (error == FT_Err_Unknown_File_Format) {
-        printf("Unknown file format.\n");
+        printf("Unknown font file format.\n");
+        return error;
     } else if (error){
-        printf("There was an error: %d\n", error);
-    } else {
-        printf("Successfully loaded font file.\n");
+        printf("Error loading the font file: %d\n", error);
+        return error;
     }
 
-    printf("Num glyphs: %ld\n", face->num_glyphs);
-    printf("Units per EM:: %u\n", face->units_per_EM);
-    printf("Fixed strikes: %d\n", face->num_fixed_sizes);
-
+    // Set the desired point size and DPI
     error = FT_Set_Char_Size(
             face,
             0,
@@ -49,9 +47,8 @@ int main(int argc, char *argv[]){
             300);
 
     if (error){
-        printf("There was an error: %d\n", error);
-    } else {
-        printf("Successfully set char size..\n");
+        printf("Error setting char size: %d\n", error);
+        return error;
     }
 
     char* text = argv[1];
@@ -62,8 +59,10 @@ int main(int argc, char *argv[]){
     pen_x = 300;
     pen_y = 300;
 
+    // Use kerning if requested and available
     use_kerning = use_kerning && FT_HAS_KERNING(face);
-   
+  
+    // Create the output bitmap and clear it with white 
     BMP* bmp;
     bmp = BMP_Create(1000, 1000, 24);
     clear_bitmap(bmp, 255, 255, 255);
@@ -107,7 +106,7 @@ int main(int argc, char *argv[]){
 
     BMP_WriteFile(bmp, "out.bmp");
     BMP_Free(bmp);
-    printf("Done!\n");
+    printf("Success!\n");
     return 0;
 }
 
