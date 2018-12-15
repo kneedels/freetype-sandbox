@@ -1,11 +1,12 @@
 #include <stdio.h>
+#include <string.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
 void my_draw_bitmap(FT_Bitmap* bitmap, FT_Int bitmap_left, 
         FT_Int bitmap_top);
 
-int main(){
+int main(int argc, char *argv[]){
     
     FT_Library library;
     FT_Face face;
@@ -45,8 +46,10 @@ int main(){
         printf("Successfully set char size..\n");
     }
 
-    char* text = "a";
-    int num_chars = 1;
+    //char* text = "a";
+    //int num_chars = 1;
+    char* text = argv[1];
+    int num_chars = strlen(argv[1]);
     int pen_x, pen_y, n;
     FT_GlyphSlot slot = face->glyph;
 
