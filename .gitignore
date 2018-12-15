@@ -56,3 +56,6 @@ dkms.conf
 
 # Bitmap output
 *.bmp
+
+# Executable bin
+ftsandbox
