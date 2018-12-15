@@ -1,10 +1,14 @@
 #include <stdio.h>
 #include <string.h>
+#include "qdbmp.h"
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-void my_draw_bitmap(FT_Bitmap* bitmap, FT_Int bitmap_left, 
-        FT_Int bitmap_top, char printChar);
+void draw_to_console(FT_Bitmap* bitmap, char printChar); 
+void clear_bitmap(BMP* bitmap, UCHAR r, UCHAR g, UCHAR b);
+void draw_to_bmp(FT_Bitmap* glyph_bitmap, BMP* dest_bitmap, FT_Int gbmp_left,
+        FT_Int gbmp_top);
+
 
 int main(int argc, char *argv[]){
     
@@ -38,7 +42,7 @@ int main(int argc, char *argv[]){
             face,
             0,
             16*64, 
-            600,
+            300,
             300);
 
     if (error){
@@ -47,8 +51,6 @@ int main(int argc, char *argv[]){
         printf("Successfully set char size..\n");
     }
 
-    //char* text = "a";
-    //int num_chars = 1;
     char* text = argv[1];
     int num_chars = strlen(argv[1]);
     int pen_x, pen_y, n;
@@ -56,7 +58,11 @@ int main(int argc, char *argv[]){
 
     pen_x = 300;
     pen_y = 300;
-    
+   
+    BMP* bmp;
+    bmp = BMP_Create(1000, 1000, 24);
+    clear_bitmap(bmp, 255, 255, 255);
+
     for (n = 0; n < num_chars; n++){
         FT_UInt glyph_index;
 
@@ -73,31 +79,61 @@ int main(int argc, char *argv[]){
             printf("Glyph render error! %d\n", error);
         }
 
-        //printf("bitmap left: %d bitmap top: %d", slot->bitmap_left,
-        //        slot->bitmap_top);
-
-        my_draw_bitmap(&slot->bitmap,
+        //draw_to_console(&slot->bitmap, printChar);
+        draw_to_bmp(&slot->bitmap,
+                bmp,
                 pen_x + slot->bitmap_left,
-                pen_y + slot->bitmap_top,
-                printChar);
+                pen_y - slot->bitmap_top);
 
         pen_x += slot->advance.x >> 6;
         pen_y += slot->advance.y >> 6;
     }
 
+    BMP_WriteFile(bmp, "out.bmp");
+    BMP_Free(bmp);
     printf("Done!\n");
     return 0;
 }
-    
-void my_draw_bitmap(FT_Bitmap* bitmap, FT_Int bitmap_left, 
-        FT_Int bitmap_top, char printChar) {
+
+void clear_bitmap(BMP* bitmap, UCHAR r, UCHAR g, UCHAR b) {
+    UINT height = BMP_GetHeight(bitmap);
+    UINT width = BMP_GetWidth(bitmap);
+    int x, y;
+
+    for (y = 0; y < height; y++){
+        for (x = 0; x < width; x++){
+            BMP_SetPixelRGB(bitmap, x, y, r, g, b);
+        }
+    }
+}
+
+void draw_to_bmp(FT_Bitmap* glyph_bitmap, BMP* dest_bitmap, FT_Int gbmp_left,
+        FT_Int gbmp_top) {
+
+    int row, col;
+
+    for (row = 0; row < glyph_bitmap->rows; row++){
+        for (col = 0; col < glyph_bitmap->width; col++) {
+            // Needs gamma correction
+            int v = 255 - glyph_bitmap->buffer[row * glyph_bitmap->width + col];
+            BMP_SetPixelRGB(
+                    dest_bitmap,
+                    gbmp_left + col,
+                    gbmp_top + row,
+                    v, v, v);
+
+        }
+    }
+}
+
+void draw_to_console(FT_Bitmap* bitmap, char printChar) {
     printf("Dimensions: %d x %d\n", bitmap->rows, bitmap->width);
 
     int row, col;
 
     for (row = 0; row < bitmap->rows; row++){
         for (col = 0; col < bitmap->width; col++) {
-            char toPrint = '.';
+            char toPrint = ' ';
             if (bitmap->buffer[row*bitmap->width + col] > 0){
                toPrint = printChar;
             } 
