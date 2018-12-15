@@ -4,10 +4,11 @@
 #include FT_FREETYPE_H
 
 void my_draw_bitmap(FT_Bitmap* bitmap, FT_Int bitmap_left, 
-        FT_Int bitmap_top);
+        FT_Int bitmap_top, char printChar);
 
 int main(int argc, char *argv[]){
     
+    char printChar = argc > 2 ? argv[2][0] : '#';
     FT_Library library;
     FT_Face face;
 
@@ -38,7 +39,7 @@ int main(int argc, char *argv[]){
             0,
             16*64, 
             600,
-            200);
+            300);
 
     if (error){
         printf("There was an error: %d\n", error);
@@ -77,7 +78,8 @@ int main(int argc, char *argv[]){
 
         my_draw_bitmap(&slot->bitmap,
                 pen_x + slot->bitmap_left,
-                pen_y + slot->bitmap_top);
+                pen_y + slot->bitmap_top,
+                printChar);
 
         pen_x += slot->advance.x >> 6;
         pen_y += slot->advance.y >> 6;
@@ -88,7 +90,7 @@ int main(int argc, char *argv[]){
 }
     
 void my_draw_bitmap(FT_Bitmap* bitmap, FT_Int bitmap_left, 
-        FT_Int bitmap_top) {
+        FT_Int bitmap_top, char printChar) {
     printf("Dimensions: %d x %d\n", bitmap->rows, bitmap->width);
 
     int row, col;
@@ -97,7 +99,7 @@ void my_draw_bitmap(FT_Bitmap* bitmap, FT_Int bitmap_left,
         for (col = 0; col < bitmap->width; col++) {
             char toPrint = '.';
             if (bitmap->buffer[row*bitmap->width + col] > 0){
-               toPrint = '#';
+               toPrint = printChar;
             } 
             printf("%c", toPrint);
         }
