@@ -3,6 +3,7 @@
 #include "qdbmp.h"
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_GLYPH_H
 
 void draw_to_console(FT_Bitmap* bitmap, char printChar); 
 void clear_bitmap(BMP* bitmap, UCHAR r, UCHAR g, UCHAR b);
@@ -15,6 +16,8 @@ int main(int argc, char *argv[]){
     char printChar = argc > 2 ? argv[2][0] : '#';
     FT_Library library;
     FT_Face face;
+    FT_Bool use_kerning = 1;
+    FT_UInt previous;
 
     int error = FT_Init_FreeType(&library);
     
@@ -58,6 +61,8 @@ int main(int argc, char *argv[]){
 
     pen_x = 300;
     pen_y = 300;
+
+    use_kerning = use_kerning && FT_HAS_KERNING(face);
    
     BMP* bmp;
     bmp = BMP_Create(1000, 1000, 24);
@@ -68,6 +73,14 @@ int main(int argc, char *argv[]){
 
         glyph_index = FT_Get_Char_Index(face, text[n]);
         //glyph_index=49;
+
+        if (use_kerning && previous && glyph_index){
+            FT_Vector delta;
+            FT_Get_Kerning(face, previous, glyph_index, 
+                    FT_KERNING_DEFAULT, &delta);
+            pen_x += delta.x >> 6;
+        }
+
         error = FT_Load_Glyph(face, glyph_index, FT_LOAD_DEFAULT);
         if (error){
             printf("Glyph load error! %d\n", error);
@@ -77,7 +90,9 @@ int main(int argc, char *argv[]){
         error = FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
         if (error){
             printf("Glyph render error! %d\n", error);
+            continue;
         }
+
 
         //draw_to_console(&slot->bitmap, printChar);
         draw_to_bmp(&slot->bitmap,
@@ -87,6 +102,7 @@ int main(int argc, char *argv[]){
 
         pen_x += slot->advance.x >> 6;
         pen_y += slot->advance.y >> 6;
+        previous = glyph_index;
     }
 
     BMP_WriteFile(bmp, "out.bmp");
@@ -114,8 +130,9 @@ void draw_to_bmp(FT_Bitmap* glyph_bitmap, BMP* dest_bitmap, FT_Int gbmp_left,
 
     for (row = 0; row < glyph_bitmap->rows; row++){
         for (col = 0; col < glyph_bitmap->width; col++) {
-            // Needs gamma correction
+            // Needs gamma correction and proper alpha blending
             int v = 255 - glyph_bitmap->buffer[row * glyph_bitmap->width + col];
+            if (v == 255) continue;
             BMP_SetPixelRGB(
                     dest_bitmap,
                     gbmp_left + col,
